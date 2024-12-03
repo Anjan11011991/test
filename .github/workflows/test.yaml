@@ -1,0 +1,52 @@
+
+# Sample workflow to access AWS resources when workflow is tied to branch
+# The workflow creates a static website using AWS S3
+
+name: AWS Example Workflow
+
+on:
+  push:
+    branches:
+      - main  # This will trigger the workflow only for the 'main' branch
+
+permissions:
+  id-token: write # This is required for requesting the JWT
+
+
+jobs:
+  deploy-to-s3:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Step 1: Checkout the code from the repository
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    # Step 2: Set up AWS OIDC authentication
+    - name: Set up OIDC authentication for AWS
+      id: aws-oidc-auth
+      uses: aws-actions/configure-aws-credentials@v3
+      with:
+        role-to-assume: arn:aws:iam::975049994612:role/oidc  # Ensure this role ARN is correct
+        aws-region: ap-south-1   # Replace with your desired AWS region
+        role-session-name: GitHubActionsSession
+        id-token: true  # Use OIDC token for authentication
+
+    # Step 3: Install AWS CLI (if not already available)
+
+    - name: Check if AWS CLI is installed
+      id: check-aws-cli
+      run: |
+        if ! command -v aws &> /dev/null; then
+          echo "AWS CLI not found, installing..."
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          unzip awscliv2.zip
+          sudo ./aws/install
+        else
+          echo "AWS CLI is already installed."
+        fi
+
+    # Step 4: List AWS Lambda functions (for testing AWS setup)
+    - name: List AWS Lambda functions
+      run: |
+        aws lambda list-functions --query 'Functions[*].FunctionName' --output table  # Optional: To display Lambda functions in a readable table format
